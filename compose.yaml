@@ -1,0 +1,61 @@
+services:
+  database:
+    image: postgres:16-bookworm
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: xuzhang
+      POSTGRES_USER: xuzhang
+      POSTGRES_PASSWORD: ${XUZHANG_DB_PASSWORD:?Set XUZHANG_DB_PASSWORD in .env.production}
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: [CMD-SHELL, pg_isready -U xuzhang -d xuzhang]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  app:
+    build: .
+    restart: unless-stopped
+    environment:
+      NOVEL_DATABASE_URL: postgresql://xuzhang:${XUZHANG_DB_PASSWORD:?Set XUZHANG_DB_PASSWORD}@database:5432/xuzhang
+      NOVEL_PUBLIC_URL: https://${NOVEL_DOMAIN:?Set NOVEL_DOMAIN to your domain}
+      NOVEL_PRODUCTION: "true"
+      NOVEL_REGISTRATION_ENABLED: ${NOVEL_REGISTRATION_ENABLED:-true}
+      NOVEL_ALLOWED_ORIGINS: '[]'
+      NOVEL_DATA_DIR: /app/data
+    # This port is private to Docker. Only the Caddy proxy publishes public ports.
+    command: [uvicorn, backend.app.main:app, --host, 0.0.0.0, --port, "8010", --workers, "2", --proxy-headers, --forwarded-allow-ips, "*"]
+    expose: ["8010"]
+    volumes:
+      - novel_files:/app/data
+    depends_on:
+      database:
+        condition: service_healthy
+    healthcheck:
+      test: [CMD, python, -c, "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8010/api/health')"]
+      interval: 15s
+      timeout: 5s
+      retries: 5
+
+  proxy:
+    image: caddy:2-alpine
+    restart: unless-stopped
+    environment:
+      NOVEL_DOMAIN: ${NOVEL_DOMAIN:?Set NOVEL_DOMAIN}
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./deploy/Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy_data:/data
+      - caddy_config:/config
+    depends_on:
+      app:
+        condition: service_healthy
+
+volumes:
+  postgres_data:
+  novel_files:
+  caddy_data:
+  caddy_config:

@@ -1,0 +1,29 @@
+[project]
+name = "xuzhang"
+version = "0.3.0"
+description = "Framework-led novel adaptation with PostgreSQL and Codex MCP"
+readme = "README.md"
+license = "MIT"
+requires-python = ">=3.12"
+dependencies = [
+  "fastapi>=0.115,<1",
+  "uvicorn[standard]>=0.34,<1",
+  "python-multipart>=0.0.20,<1",
+  "lxml>=5.3,<7",
+  "httpx>=0.28,<1",
+  "pydantic-settings>=2.7,<3",
+  "mcp>=1.26,<2",
+  "psycopg[binary,pool]>=3.2,<4",
+]
+
+[dependency-groups]
+dev = ["pytest>=8.3,<10"]
+
+[project.urls]
+Repository = "https://github.com/saberc8/xuzhang-novel-studio"
+Documentation = "https://github.com/saberc8/xuzhang-novel-studio/blob/main/docs/CODEX_GUIDE.md"
+Issues = "https://github.com/saberc8/xuzhang-novel-studio/issues"
+
+[tool.pytest.ini_options]
+testpaths = ["backend/tests"]
+pythonpath = ["."]
