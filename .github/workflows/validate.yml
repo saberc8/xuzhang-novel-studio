@@ -46,3 +46,13 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - run: docker build --tag xuzhang-novel-studio:ci .
+      - name: Validate Compose configuration
+        env:
+          NOVEL_DOMAIN: novel.example.com
+          XUZHANG_DB_PASSWORD: ci_configuration_only
+        run: docker compose config --quiet
+      - name: Validate Caddy configuration
+        run: >-
+          docker run --rm -e NOVEL_DOMAIN=novel.example.com
+          --mount type=bind,source="$PWD/deploy/Caddyfile",target=/etc/caddy/Caddyfile,readonly
+          caddy:2-alpine caddy validate --config /etc/caddy/Caddyfile --adapter caddyfile
